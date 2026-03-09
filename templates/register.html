@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindBoost — Register</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --purple:#b537f2; --cyan:#00f5ff; --bg:#050510; --card:rgba(15,10,40,0.9); --border:rgba(181,55,242,0.35); --text:#e8e0ff; --muted:#7a6f9a; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Rajdhani',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  body::before { content:''; position:fixed; inset:0; pointer-events:none; background-image:linear-gradient(rgba(0,245,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.05) 1px,transparent 1px); background-size:40px 40px; animation:grid 20s linear infinite; }
+  body::after { content:''; position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse at 70% 40%,rgba(0,245,255,0.1) 0%,transparent 60%),radial-gradient(ellipse at 20% 70%,rgba(181,55,242,0.12) 0%,transparent 55%); }
+  @keyframes grid { to { background-position:0 40px; } }
+  .wrapper { width:100%; max-width:420px; position:relative; z-index:1; }
+  .brand { text-align:center; margin-bottom:32px; }
+  .brand-sub { font-size:11px; letter-spacing:5px; color:var(--muted); text-transform:uppercase; margin-bottom:10px; }
+  .brand-title { font-family:'Orbitron',monospace; font-size:26px; font-weight:900; background:linear-gradient(90deg,var(--cyan),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:3px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:40px 36px; backdrop-filter:blur(20px); box-shadow:0 0 60px rgba(0,245,255,0.08),inset 0 1px 0 rgba(255,255,255,0.05); position:relative; overflow:hidden; }
+  .card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent); }
+  .card-title { font-family:'Orbitron',monospace; font-size:20px; font-weight:900; color:var(--purple); letter-spacing:2px; margin-bottom:28px; text-align:center; }
+  .form-group { margin-bottom:20px; }
+  label { display:block; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; font-weight:600; }
+  input[type="text"], input[type="password"] { width:100%; padding:14px 16px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Rajdhani',sans-serif; font-size:16px; outline:none; transition:all 0.25s; }
+  input:focus { border-color:var(--cyan); background:rgba(0,245,255,0.05); box-shadow:0 0 20px rgba(0,245,255,0.12); }
+  .btn { width:100%; padding:15px; background:linear-gradient(135deg,#00b4d8,#0077b6); border:none; border-radius:8px; color:white; font-family:'Orbitron',monospace; font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; transition:all 0.25s; text-transform:uppercase; margin-top:8px; }
+  .btn:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(0,180,216,0.45); }
+  .alert { padding:12px 16px; border-radius:8px; font-size:14px; font-weight:600; margin-bottom:20px; background:rgba(255,45,120,0.12); border:1px solid rgba(255,45,120,0.4); color:#ff6a9b; }
+  .footer-link { text-align:center; margin-top:24px; color:var(--muted); font-size:15px; }
+  .footer-link a { color:var(--cyan); text-decoration:none; font-weight:600; }
+  .footer-link a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="brand">
+    <div class="brand-sub">Join the Arena</div>
+    <div class="brand-title">MINDBOOST</div>
+  </div>
+  <div class="card">
+    <div class="card-title">CREATE ACCOUNT</div>
+    {% if error %}
+    <div class="alert">⚠️ {{ error }}</div>
+    {% endif %}
+    <form method="POST" action="/register">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="Choose a username" required autofocus>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Create a password" required>
+      </div>
+      <button type="submit" class="btn">CREATE ACCOUNT</button>
+    </form>
+    <div class="footer-link">
+      Already have an account? <a href="/login">Sign In</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindBoost — Reflex Tap</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--purple:#b537f2;--cyan:#00f5ff;--pink:#ff2d78;--green:#00e88a;--orange:#ff9f43;--bg:#050510;--border:rgba(181,55,242,0.3);--text:#e8e0ff;--muted:#7a6f9a;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(181,55,242,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(181,55,242,0.05) 1px,transparent 1px);background-size:40px 40px;}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:rgba(5,5,16,0.95);backdrop-filter:blur(16px);}
+  .nav-logo{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
+  .nav-btn{padding:7px 14px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;border-radius:6px;cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;letter-spacing:1px;}
+  .nav-btn:hover{background:rgba(181,55,242,0.2);border-color:var(--purple);color:var(--cyan);}
+  .container{max-width:640px;margin:0 auto;padding:24px 20px;position:relative;z-index:1;}
+
+  .hud{display:flex;justify-content:space-between;align-items:center;background:rgba(15,10,40,0.85);border:1px solid var(--border);border-radius:12px;padding:14px 22px;margin-bottom:16px;}
+  .hud-item{text-align:center;}
+  .hud-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .hud-value{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:var(--cyan);}
+  .hud-value.warn{color:var(--orange);}
+  .hud-value.danger{color:var(--pink);animation:blink 0.5s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
+
+  .board-wrap{background:rgba(15,10,40,0.85);border:1px solid var(--border);border-radius:16px;padding:20px;}
+
+  /* reaction meter */
+  .reaction-bar{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .r-label{font-size:11px;letter-spacing:2px;color:var(--muted);white-space:nowrap;}
+  .r-track{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+  .r-fill{height:100%;width:0%;border-radius:3px;transition:width 0.08s linear;background:var(--green);}
+  .r-time{font-family:'Orbitron',monospace;font-size:12px;color:var(--cyan);min-width:52px;text-align:right;}
+
+  /* grid */
+  #grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-bottom:16px;
+  }
+
+  .zone{
+    aspect-ratio:1;
+    border-radius:14px;
+    background:rgba(255,255,255,0.04);
+    border:2px solid rgba(255,255,255,0.07);
+    cursor:pointer;
+    transition:transform 0.1s, background 0.08s, border-color 0.08s;
+    position:relative;
+    overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .zone:hover{transform:scale(0.97);}
+  .zone:active{transform:scale(0.92);}
+
+  /* lit state — colour coded by speed */
+  .zone.lit-fast{
+    background:rgba(0,232,138,0.25);
+    border-color:var(--green);
+    box-shadow:0 0 18px rgba(0,232,138,0.5), inset 0 0 14px rgba(0,232,138,0.2);
+    animation:pulse-fast 0.25s ease-in-out infinite alternate;
+  }
+  .zone.lit-med{
+    background:rgba(0,245,255,0.2);
+    border-color:var(--cyan);
+    box-shadow:0 0 18px rgba(0,245,255,0.4), inset 0 0 14px rgba(0,245,255,0.15);
+    animation:pulse-med 0.4s ease-in-out infinite alternate;
+  }
+  .zone.lit-slow{
+    background:rgba(255,159,67,0.2);
+    border-color:var(--orange);
+    box-shadow:0 0 18px rgba(255,159,67,0.4), inset 0 0 14px rgba(255,159,67,0.15);
+    animation:pulse-slow 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes pulse-fast{from{box-shadow:0 0 14px rgba(0,232,138,0.4)}to{box-shadow:0 0 28px rgba(0,232,138,0.8)}}
+  @keyframes pulse-med{from{box-shadow:0 0 14px rgba(0,245,255,0.3)}to{box-shadow:0 0 28px rgba(0,245,255,0.7)}}
+  @keyframes pulse-slow{from{box-shadow:0 0 14px rgba(255,159,67,0.3)}to{box-shadow:0 0 28px rgba(255,159,67,0.7)}}
+
+  /* shrink ring inside lit zone */
+  .zone.lit-fast::before,.zone.lit-med::before,.zone.lit-slow::before{
+    content:'';position:absolute;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.6);
+    animation:shrinkRing var(--ring-dur,0.6s) linear forwards;
+  }
+  @keyframes shrinkRing{
+    0%{width:90%;height:90%;opacity:0.8;}
+    100%{width:10%;height:10%;opacity:0;}
+  }
+
+  /* hit flash */
+  .zone.hit{
+    background:rgba(0,232,138,0.4)!important;
+    border-color:var(--green)!important;
+    animation:hitFlash 0.3s ease forwards!important;
+  }
+  @keyframes hitFlash{0%{transform:scale(1.08)}100%{transform:scale(1);opacity:0.3}}
+
+  /* miss flash */
+  .zone.miss-flash{
+    background:rgba(255,45,120,0.25)!important;
+    border-color:var(--pink)!important;
+  }
+
+  /* score popup */
+  .score-popup{
+    position:fixed;font-family:'Orbitron',monospace;font-size:16px;font-weight:900;
+    pointer-events:none;z-index:999;transform:translateX(-50%);
+    animation:floatUp 0.9s ease forwards;
+  }
+  @keyframes floatUp{0%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-60px)}}
+
+  /* feedback strip */
+  .feedback{
+    text-align:center;height:28px;margin-bottom:10px;
+    font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;
+    transition:color 0.2s;color:var(--muted);
+  }
+
+  /* lives */
+  .lives-row{display:flex;justify-content:center;gap:8px;margin-bottom:14px;}
+  .life{font-size:20px;transition:all 0.3s;}
+  .life.lost{filter:grayscale(1);opacity:0.25;transform:scale(0.8);}
+
+  .start-btn{display:block;width:100%;padding:13px;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;border-radius:10px;color:white;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.25s;}
+  .start-btn:hover{box-shadow:0 6px 20px rgba(181,55,242,0.5);transform:translateY(-2px);}
+  .start-btn:disabled{opacity:0.4;cursor:default;transform:none;box-shadow:none;}
+
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:200;align-items:center;justify-content:center;}
+  .overlay.show{display:flex;}
+  .result-card{background:rgba(15,10,40,0.98);border:1px solid var(--purple);border-radius:20px;padding:44px 40px;text-align:center;max-width:380px;width:90%;}
+  .result-card h2{font-family:'Orbitron',monospace;font-size:22px;color:var(--cyan);margin-bottom:8px;}
+  .result-score{font-family:'Orbitron',monospace;font-size:56px;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:14px 0;}
+  .result-meta{color:var(--muted);font-size:14px;margin-bottom:4px;}
+  .result-stats{display:flex;gap:20px;justify-content:center;margin:16px 0;}
+  .r-stat-val{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:var(--cyan);}
+  .r-stat-lbl{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+  .result-btn{display:inline-block;padding:13px 28px;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;border-radius:8px;color:white;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;text-decoration:none;margin-top:12px;}
+  .result-btn-sec{display:inline-block;padding:13px 28px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;text-decoration:none;margin-top:8px;margin-left:8px;}
+  .result-btn-sec:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  /* ── HOW TO PLAY MODAL ── */
+  .htp-btn{position:fixed;bottom:24px;right:24px;z-index:150;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;color:white;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(181,55,242,0.5);transition:all 0.25s;display:flex;align-items:center;justify-content:center;}
+  .htp-btn:hover{transform:scale(1.12) translateY(-2px);box-shadow:0 8px 28px rgba(181,55,242,0.7);}
+  .htp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:400;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:20px;}
+  .htp-overlay.open{display:flex;}
+  .htp-box{background:rgba(10,6,30,0.98);border:1px solid var(--border);border-radius:20px;max-width:480px;width:100%;overflow:hidden;animation:htpIn 0.25s ease;position:relative;}
+  @keyframes htpIn{from{opacity:0;transform:scale(0.94) translateY(-12px)}to{opacity:1;transform:none}}
+  .htp-header{padding:24px 28px 18px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(181,55,242,0.12),rgba(0,245,255,0.06));position:relative;}
+  .htp-title{font-family:'Orbitron',monospace;font-size:17px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;margin-bottom:4px;}
+  .htp-sub{font-size:12px;color:var(--muted);letter-spacing:1px;}
+  .htp-close{position:absolute;top:16px;right:18px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .htp-close:hover{border-color:var(--pink);color:var(--pink);}
+  .htp-body{padding:24px 28px;}
+  .htp-steps{list-style:none;display:flex;flex-direction:column;gap:14px;}
+  .htp-step{display:flex;gap:14px;align-items:flex-start;}
+  .htp-num{flex-shrink:0;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(181,55,242,0.3),rgba(0,245,255,0.15));border:1px solid rgba(181,55,242,0.4);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--cyan);}
+  .htp-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:4px;}
+  .htp-text strong{color:var(--cyan);}
+  .htp-tip{margin-top:20px;padding:12px 16px;background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.18);border-radius:10px;font-size:12px;color:var(--muted);line-height:1.6;}
+  .htp-tip span{color:var(--cyan);font-weight:700;}
+  .htp-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;}
+  .htp-go{padding:11px 28px;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;border-radius:8px;color:white;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.2s;}
+  .htp-go:hover{box-shadow:0 4px 16px rgba(181,55,242,0.5);transform:translateY(-1px);}
+
+
+  /* ── HOW TO PLAY MODAL ── */
+  .htp-btn{position:fixed;bottom:24px;right:24px;z-index:150;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;color:white;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(181,55,242,0.5);transition:all 0.25s;display:flex;align-items:center;justify-content:center;}
+  .htp-btn:hover{transform:scale(1.12) translateY(-2px);box-shadow:0 8px 28px rgba(181,55,242,0.7);}
+  .htp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:400;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:20px;}
+  .htp-overlay.open{display:flex;}
+  .htp-box{background:rgba(10,6,30,0.98);border:1px solid var(--border);border-radius:20px;max-width:480px;width:100%;overflow:hidden;animation:htpIn 0.25s ease;position:relative;}
+  @keyframes htpIn{from{opacity:0;transform:scale(0.94) translateY(-12px)}to{opacity:1;transform:none}}
+  .htp-header{padding:24px 28px 18px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(181,55,242,0.12),rgba(0,245,255,0.06));position:relative;}
+  .htp-title{font-family:'Orbitron',monospace;font-size:17px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;margin-bottom:4px;}
+  .htp-sub{font-size:12px;color:var(--muted);letter-spacing:1px;}
+  .htp-close{position:absolute;top:16px;right:18px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .htp-close:hover{border-color:var(--pink);color:var(--pink);}
+  .htp-body{padding:24px 28px;}
+  .htp-steps{list-style:none;display:flex;flex-direction:column;gap:14px;}
+  .htp-step{display:flex;gap:14px;align-items:flex-start;}
+  .htp-num{flex-shrink:0;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(181,55,242,0.3),rgba(0,245,255,0.15));border:1px solid rgba(181,55,242,0.4);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--cyan);}
+  .htp-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:4px;}
+  .htp-text strong{color:var(--cyan);}
+  .htp-tip{margin-top:20px;padding:12px 16px;background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.18);border-radius:10px;font-size:12px;color:var(--muted);line-height:1.6;}
+  .htp-tip span{color:var(--cyan);font-weight:700;}
+  .htp-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;}
+  .htp-go{padding:11px 28px;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;border-radius:8px;color:white;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.2s;}
+  .htp-go:hover{box-shadow:0 4px 16px rgba(181,55,242,0.5);transform:translateY(-1px);}
+
+
+  /* ── INSTRUCTIONS STRIP ── */
+  .instr-strip{background:rgba(15,10,40,0.85);border:1px solid rgba(0,245,255,0.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;}
+  .instr-strip-title{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:8px;display:block;}
+  .instr-steps{display:flex;flex-wrap:wrap;gap:8px;width:100%;}
+  .instr-step{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(181,55,242,0.18);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);line-height:1.4;}
+  .instr-step .i-num{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;color:var(--cyan);background:rgba(0,245,255,0.1);border-radius:4px;padding:2px 5px;flex-shrink:0;}
+  .instr-step .i-icon{font-size:14px;flex-shrink:0;}
+  .instr-step strong{color:var(--cyan);}
+
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">MINDBOOST</div>
+  <div style="display:flex;gap:8px;">
+    <a href="/dashboard" class="nav-btn">Dashboard</a>
+    <a href="/play" class="nav-btn">← Games</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="hud">
+    <div class="hud-item"><div class="hud-label">Score</div>
+<!-- INSTR-INJECTED -->
+<div class="instr-strip">
+  <span class="instr-strip-title">📖 How to Play</span>
+  <div class="instr-steps">
+    <div class="instr-step"><span class="i-num">1</span><span class="i-icon">⚡</span>A <strong>random cell lights up</strong> on the grid — tap it fast!</div>
+    <div class="instr-step"><span class="i-num">2</span><span class="i-icon">⏱️</span>Points are based on your <strong>reaction speed</strong> — faster = more</div>
+    <div class="instr-step"><span class="i-num">3</span><span class="i-icon">❌</span>Missing or tapping the wrong cell <strong>costs a life</strong></div>
+    <div class="instr-step"><span class="i-num">4</span><span class="i-icon">🚀</span>Zones fade <strong>faster as your score grows</strong> — survive as long as you can</div>
+  </div>
+</div><div class="hud-value" id="score">0</div></div>
+    <div class="hud-item"><div class="hud-label">⚡ Reflex Tap</div><div style="color:var(--muted);font-size:12px;margin-top:4px;">Tap the zone before it fades!</div></div>
+    <div class="hud-item"><div class="hud-label">Hits</div><div class="hud-value" id="hits">0</div></div>
+    <div class="hud-item"><div class="hud-label">Time</div><div class="hud-value" id="timer">60</div></div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="reaction-bar">
+      <span class="r-label">REACTION</span>
+      <div class="r-track"><div class="r-fill" id="r-fill"></div></div>
+      <span class="r-time" id="r-time">—</span>
+    </div>
+
+    <div class="lives-row" id="lives-row"></div>
+    <div class="feedback" id="feedback">Press START to begin</div>
+
+    <div id="grid"></div>
+
+    <button class="start-btn" id="start-btn" onclick="startGame()">▶ START GAME</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="result-card">
+    <h2 id="result-title">TIME'S UP!</h2>
+    <div class="result-score" id="final-score">0</div>
+    <div class="result-meta">Final Score</div>
+    <div class="result-stats">
+      <div style="text-align:center"><div class="r-stat-val" id="final-hits">0</div><div class="r-stat-lbl">Hits</div></div>
+      <div style="text-align:center"><div class="r-stat-val" id="final-acc">0%</div><div class="r-stat-lbl">Accuracy</div></div>
+      <div style="text-align:center"><div class="r-stat-val" id="final-avg">0ms</div><div class="r-stat-lbl">Avg Reaction</div></div>
+    </div>
+    <a href="/play" class="result-btn">BACK TO GAMES</a>
+    <button class="result-btn-sec" onclick="restartGame()">TRY AGAIN</button>
+  </div>
+</div>
+
+<script>
+const COLS      = 4;
+const ROWS      = 4;
+const ZONES     = COLS * ROWS;
+const MAX_LIVES = 3;
+
+let score       = 0;
+let hits        = 0;
+let misses      = 0;
+let timeLeft    = 60;
+let lives       = MAX_LIVES;
+let active      = false;
+let litZone     = -1;
+let litTimeout  = null;
+let timerRef    = null;
+let litStart    = 0;
+let totalRT     = 0;
+let rtCount     = 0;
+let streak      = 0;
+let bestStreak  = 0;
+let round       = 0;
+
+// difficulty ramp: window shrinks as score grows
+function getWindow() {
+  if (score < 200)  return 1800;
+  if (score < 500)  return 1400;
+  if (score < 900)  return 1100;
+  if (score < 1400) return 850;
+  return 650;
+}
+function getDelay() {
+  // gap between zones
+  if (score < 300)  return 700 + Math.random() * 500;
+  if (score < 800)  return 450 + Math.random() * 350;
+  return 280 + Math.random() * 250;
+}
+function getLitClass(win) {
+  if (win <= 800)  return 'lit-fast';
+  if (win <= 1200) return 'lit-med';
+  return 'lit-slow';
+}
+
+// Build grid
+function buildGrid() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  for (let i = 0; i < ZONES; i++) {
+    const z = document.createElement('div');
+    z.className  = 'zone';
+    z.dataset.idx = i;
+    z.onclick = () => onZoneClick(i);
+    g.appendChild(z);
+  }
+}
+
+function buildLives() {
+  const row = document.getElementById('lives-row');
+  row.innerHTML = '';
+  for (let i = 0; i < MAX_LIVES; i++) {
+    const d = document.createElement('div');
+    d.className = 'life' + (i >= lives ? ' lost' : '');
+    d.textContent = '⚡';
+    row.appendChild(d);
+  }
+}
+
+function setFeedback(text, color) {
+  const el = document.getElementById('feedback');
+  el.textContent = text;
+  el.style.color  = color || 'var(--muted)';
+}
+
+function showReaction(ms) {
+  const el   = document.getElementById('r-time');
+  const fill = document.getElementById('r-fill');
+  el.textContent = ms + 'ms';
+  // fill bar: 200ms = 100%, 800ms = 0%
+  const pct = Math.max(0, Math.min(100, (1 - (ms - 200) / 600) * 100));
+  fill.style.width = pct + '%';
+  fill.style.background = pct > 60 ? 'var(--green)' : pct > 30 ? 'var(--orange)' : 'var(--pink)';
+}
+
+function spawnPopup(text, color, zoneIdx) {
+  const zones = document.querySelectorAll('.zone');
+  const rect  = zones[zoneIdx].getBoundingClientRect();
+  const el    = document.createElement('div');
+  el.className   = 'score-popup';
+  el.textContent = text;
+  el.style.color = color;
+  el.style.left  = (rect.left + rect.width / 2) + 'px';
+  el.style.top   = rect.top + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+function lightZone() {
+  if (!active) return;
+  round++;
+  const win   = getWindow();
+  const cls   = getLitClass(win);
+  const idx   = Math.floor(Math.random() * ZONES);
+  const zones = document.querySelectorAll('.zone');
+
+  litZone = idx;
+  litStart = performance.now();
+
+  const z = zones[idx];
+  z.style.setProperty('--ring-dur', win + 'ms');
+  z.classList.add(cls);
+
+  litTimeout = setTimeout(() => {
+    if (!active) return;
+    // zone expired — miss
+    zones[idx].classList.remove(cls);
+    zones[idx].classList.add('miss-flash');
+    setTimeout(() => zones[idx].classList.remove('miss-flash'), 300);
+    litZone = -1;
+    misses++;
+    streak  = 0;
+    lives--;
+    buildLives();
+    setFeedback('TOO SLOW! ⚡ lost', 'var(--pink)');
+    if (lives <= 0) { endGame(true); return; }
+    setTimeout(lightZone, getDelay());
+  }, win);
+}
+
+function onZoneClick(idx) {
+  if (!active) return;
+  const zones = document.querySelectorAll('.zone');
+
+  if (idx === litZone) {
+    // HIT
+    clearTimeout(litTimeout);
+    const rt   = Math.round(performance.now() - litStart);
+    const win  = getWindow();
+    totalRT   += rt;
+    rtCount++;
+    hits++;
+    streak++;
+    if (streak > bestStreak) bestStreak = streak;
+
+    // remove lit class
+    zones[idx].className = 'zone hit';
+    setTimeout(() => zones[idx].className = 'zone', 300);
+
+    // score: faster = more pts, streak multiplier
+    const speedPts  = Math.round(Math.max(10, (1 - rt / win) * 80));
+    const streakMul = streak >= 5 ? 3 : streak >= 3 ? 2 : 1;
+    const pts       = speedPts * streakMul;
+    score += pts;
+    litZone = -1;
+
+    document.getElementById('score').textContent = score;
+    document.getElementById('hits').textContent  = hits;
+    showReaction(rt);
+
+    const msg = streak >= 5 ? `🔥${streak}x +${pts}` : streak >= 3 ? `⚡${streak}x +${pts}` : `+${pts}`;
+    const col = rt < 300 ? 'var(--green)' : rt < 500 ? 'var(--cyan)' : 'var(--orange)';
+    spawnPopup(msg, col, idx);
+
+    const fb = rt < 300 ? '⚡ LIGHTNING!' : rt < 500 ? '✓ FAST!' : rt < 700 ? '~ GOOD' : '~ OK';
+    setFeedback(fb + (streak >= 3 ? `  🔥 ${streak}x STREAK` : ''), col);
+
+    setTimeout(lightZone, getDelay());
+  } else {
+    // wrong zone click — no penalty, just ignore
+    zones[idx].classList.add('miss-flash');
+    setTimeout(() => zones[idx].classList.remove('miss-flash'), 200);
+  }
+}
+
+function startGame() {
+  buildGrid();
+  lives     = MAX_LIVES;
+  score     = 0; hits = 0; misses = 0;
+  timeLeft  = 60;
+  streak    = 0; bestStreak = 0; round = 0;
+  totalRT   = 0; rtCount = 0;
+  active    = true;
+
+  document.getElementById('score').textContent   = 0;
+  document.getElementById('hits').textContent    = 0;
+  document.getElementById('r-time').textContent  = '—';
+  document.getElementById('r-fill').style.width  = '0%';
+  document.getElementById('start-btn').disabled  = true;
+  buildLives();
+  setFeedback('GET READY…', 'var(--cyan)');
+
+  setTimeout(() => {
+    setFeedback('TAP THE GLOWING ZONE!', 'var(--muted)');
+    lightZone();
+  }, 800);
+
+  timerRef = setInterval(() => {
+    if (!active) { clearInterval(timerRef); return; }
+    timeLeft--;
+    const el = document.getElementById('timer');
+    el.textContent = timeLeft;
+    el.className   = 'hud-value' + (timeLeft <= 10 ? ' danger' : timeLeft <= 20 ? ' warn' : '');
+    if (timeLeft === 0) endGame(false);
+  }, 1000);
+}
+
+function endGame(outOfLives) {
+  active = false;
+  clearTimeout(litTimeout);
+  clearInterval(timerRef);
+
+  // clear any lit zones
+  document.querySelectorAll('.zone').forEach(z => z.className = 'zone');
+
+  const acc    = (hits + misses) > 0 ? Math.round(hits / (hits + misses) * 100) : 0;
+  const avgRT  = rtCount > 0 ? Math.round(totalRT / rtCount) : 0;
+
+  document.getElementById('result-title').textContent  = outOfLives ? 'OUT OF LIVES!' : "TIME'S UP!";
+  document.getElementById('final-score').textContent   = score;
+  document.getElementById('final-hits').textContent    = hits;
+  document.getElementById('final-acc').textContent     = acc + '%';
+  document.getElementById('final-avg').textContent     = avgRT + 'ms';
+  document.getElementById('overlay').classList.add('show');
+
+  fetch('/save_score', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({game_name:'Reflex Tap', score, time_taken: 60 - timeLeft, accuracy: acc})
+  });
+}
+
+function restartGame() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('start-btn').disabled  = false;
+  document.getElementById('timer').className     = 'hud-value';
+  document.getElementById('timer').textContent   = 60;
+  setFeedback('Press START to begin', 'var(--muted)');
+  startGame();
+}
+
+buildGrid();
+</script>
+
+<!-- HTP-INJECTED -->
+<!-- HOW TO PLAY BUTTON -->
+<button class="htp-btn" onclick="document.getElementById('htp-modal').classList.add('open')" title="How to Play">❓</button>
+
+<!-- HOW TO PLAY MODAL -->
+<div class="htp-overlay" id="htp-modal">
+  <div class="htp-box">
+    <div class="htp-header">
+      <div class="htp-title">REFLEX TAP</div>
+      <div class="htp-sub">Tap the lit zone before it fades</div>
+      <button class="htp-close" onclick="document.getElementById('htp-modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="htp-body">
+      <ol class="htp-steps">
+        <li class="htp-step"><div class="htp-num">1</div><div class="htp-text">⚡ A <strong>random zone</strong> on the grid lights up — tap it as fast as you can!</div></li>
+        <li class="htp-step"><div class="htp-num">2</div><div class="htp-text">⏱️ Each successful tap scores points based on your <strong>reaction speed</strong>.</div></li>
+        <li class="htp-step"><div class="htp-num">3</div><div class="htp-text">❌ Missing a zone or tapping the <strong>wrong cell costs you a life</strong>.</div></li>
+        <li class="htp-step"><div class="htp-num">4</div><div class="htp-text">🚀 The zones fade <strong>faster as your score climbs</strong> — stay sharp!</div></li>
+        <li class="htp-step"><div class="htp-num">5</div><div class="htp-text">❤️ You have 3 lives. Survive as long as possible for a top score!</div></li>
+      </ol>
+      <div class="htp-tip">💡 <span>Pro tip:</span> Keep your eyes centered so you can spot any zone instantly!</div>
+    </div>
+    <div class="htp-footer">
+      <button class="htp-go" onclick="document.getElementById('htp-modal').classList.remove('open')">GOT IT — LET'S PLAY!</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var ov=document.getElementById('htp-modal');
+  ov.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')ov.classList.remove('open');});
+})();
+</script>
+
+</body>
+</html>
