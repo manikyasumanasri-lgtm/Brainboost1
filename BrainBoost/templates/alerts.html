@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindBoost — Alerts</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--purple:#b537f2;--cyan:#00f5ff;--pink:#ff2d78;--green:#00e88a;--orange:#ff9f43;--bg:#050510;--surface:rgba(15,10,40,0.85);--border:rgba(181,55,242,0.3);--text:#e8e0ff;--muted:#7a6f9a;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(181,55,242,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(181,55,242,0.05) 1px,transparent 1px);background-size:40px 40px;}
+
+  nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:rgba(5,5,16,0.95);backdrop-filter:blur(16px);position:sticky;top:0;z-index:100;}
+  .nav-logo{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
+  .nav-links{display:flex;gap:6px;align-items:center;}
+  .nav-btn{padding:7px 14px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;border-radius:6px;cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;letter-spacing:1px;}
+  .nav-btn:hover{background:rgba(181,55,242,0.2);border-color:var(--purple);color:var(--cyan);}
+  .nav-btn.active{background:rgba(181,55,242,0.15);border-color:var(--purple);color:var(--cyan);}
+
+  .container{max-width:700px;margin:0 auto;padding:32px 20px;position:relative;z-index:1;}
+
+  /* page header */
+  .page-header{margin-bottom:28px;}
+  .page-title{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;margin-bottom:6px;}
+  .page-sub{font-size:13px;color:var(--muted);letter-spacing:1px;}
+
+  /* flash messages */
+  .flash{padding:12px 18px;border-radius:10px;margin-bottom:18px;font-family:'Orbitron',monospace;font-size:12px;letter-spacing:1px;display:flex;align-items:center;gap:10px;}
+  .flash.success{background:rgba(0,232,138,0.1);border:1px solid rgba(0,232,138,0.35);color:var(--green);}
+  .flash.danger{background:rgba(255,45,120,0.1);border:1px solid rgba(255,45,120,0.35);color:var(--pink);}
+  .flash.info{background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.3);color:var(--cyan);}
+
+  /* main card */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;}
+  .card-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .card-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--text);}
+  .card-badge{font-family:'Orbitron',monospace;font-size:11px;padding:4px 10px;border-radius:20px;}
+  .badge-active{background:rgba(0,232,138,0.12);border:1px solid rgba(0,232,138,0.35);color:var(--green);}
+  .badge-empty{background:rgba(122,111,154,0.15);border:1px solid rgba(122,111,154,0.3);color:var(--muted);}
+
+  /* info strip */
+  .info-strip{padding:12px 24px;background:rgba(0,245,255,0.04);border-bottom:1px solid rgba(0,245,255,0.1);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+  .info-strip span{color:var(--cyan);}
+
+  /* subscriber list */
+  .sub-list{padding:8px 0;}
+  .sub-empty{padding:40px 24px;text-align:center;}
+  .sub-empty-icon{font-size:40px;margin-bottom:12px;opacity:0.25;}
+  .sub-empty-text{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;color:var(--muted);margin-bottom:6px;}
+  .sub-empty-sub{font-size:12px;color:var(--muted);}
+
+  .sub-item{padding:14px 24px;border-bottom:1px solid rgba(181,55,242,0.1);display:flex;align-items:center;gap:14px;transition:background 0.15s;}
+  .sub-item:last-child{border-bottom:none;}
+  .sub-item:hover{background:rgba(255,255,255,0.02);}
+
+  .sub-avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:14px;font-weight:700;flex-shrink:0;}
+  .sub-avatar.pending{background:rgba(255,159,67,0.15);border:1px solid rgba(255,159,67,0.35);color:var(--orange);}
+  .sub-avatar.confirmed{background:rgba(0,232,138,0.12);border:1px solid rgba(0,232,138,0.3);color:var(--green);}
+
+  .sub-info{flex:1;min-width:0;}
+  .sub-email{font-family:'Orbitron',monospace;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;}
+  .sub-status{display:flex;align-items:center;gap:6px;}
+  .status-dot{width:6px;height:6px;border-radius:50%;}
+  .status-dot.pending{background:var(--orange);animation:blink 1.5s infinite;}
+  .status-dot.confirmed{background:var(--green);}
+  .status-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;}
+  .status-label.pending{color:var(--orange);}
+  .status-label.confirmed{color:var(--green);}
+  .sub-date{font-size:11px;color:var(--muted);margin-top:2px;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+  .remove-btn{background:transparent;border:1px solid rgba(255,45,120,0.35);border-radius:8px;color:var(--pink);padding:7px 14px;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.18s;flex-shrink:0;white-space:nowrap;}
+  .remove-btn:hover{background:var(--pink);color:white;box-shadow:0 4px 14px rgba(255,45,120,0.35);transform:translateY(-1px);}
+
+  /* pending notice */
+  .pending-notice{padding:10px 24px;background:rgba(255,159,67,0.06);border-top:1px solid rgba(255,159,67,0.15);font-size:12px;color:var(--muted);line-height:1.6;}
+  .pending-notice strong{color:var(--orange);}
+  .pending-notice .ok{color:var(--green);}
+
+  /* add form */
+  .add-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;}
+  .add-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--text);margin-bottom:6px;}
+  .add-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+
+  .form-row{display:flex;gap:10px;}
+  .email-input{flex:1;padding:11px 16px;background:rgba(5,5,20,0.8);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;outline:none;transition:all 0.2s;}
+  .email-input::placeholder{color:var(--muted);}
+  .email-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(181,55,242,0.12);}
+  .submit-btn{padding:11px 22px;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;border-radius:10px;color:white;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .submit-btn:hover{box-shadow:0 4px 18px rgba(181,55,242,0.45);transform:translateY(-1px);}
+
+  .form-hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6;}
+  .form-hint span{color:var(--cyan);}
+
+  /* modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:rgba(15,10,40,0.98);border:1px solid var(--border);border-radius:18px;padding:36px 32px;max-width:380px;width:90%;text-align:center;animation:modalIn 0.22s ease;}
+  @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(-10px)}to{opacity:1;transform:none}}
+  .modal-icon{font-size:36px;margin-bottom:14px;}
+  .modal-title{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--text);margin-bottom:8px;}
+  .modal-sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6;}
+  .modal-email{font-family:'Orbitron',monospace;font-size:12px;color:var(--pink);padding:9px 14px;background:rgba(255,45,120,0.08);border:1px solid rgba(255,45,120,0.25);border-radius:8px;margin-bottom:22px;word-break:break-all;}
+  .modal-actions{display:flex;gap:10px;justify-content:center;}
+  .modal-cancel{padding:10px 20px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.15s;}
+  .modal-cancel:hover{border-color:var(--cyan);color:var(--cyan);}
+  .modal-confirm{padding:10px 20px;background:rgba(255,45,120,0.15);border:1px solid rgba(255,45,120,0.4);border-radius:8px;color:var(--pink);font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.15s;}
+  .modal-confirm:hover{background:var(--pink);color:white;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">MINDBOOST</div>
+  <div class="nav-links">
+    <a href="/dashboard" class="nav-btn">Dashboard</a>
+    <a href="/play" class="nav-btn">Games</a>
+    <a href="/scores" class="nav-btn">Scores</a>
+    <a href="/profile" class="nav-btn">Profile</a>
+    <a href="/alerts" class="nav-btn active">Alerts</a>
+    <a href="/logout" class="nav-btn">Logout</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <div class="page-title">🔔 GAME ALERTS</div>
+    <div class="page-sub">Get notified when you hit new scores or milestones</div>
+  </div>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">
+          {% if category == 'success' %}✓{% elif category == 'danger' %}✗{% else %}ℹ{% endif %}
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Subscriber list -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">EMAIL NOTIFICATIONS</div>
+      {% if notification_emails %}
+        <span class="card-badge badge-active">{{ notification_emails|length }} ACTIVE</span>
+      {% else %}
+        <span class="card-badge badge-empty">NONE YET</span>
+      {% endif %}
+    </div>
+
+    <div class="info-strip">
+      🔔 <span>Automatic email alerts</span> when you achieve new high scores or brain level milestones
+    </div>
+
+    <div class="sub-list">
+      {% if notification_emails %}
+        {% for entry in notification_emails %}
+        <div class="sub-item">
+          <div class="sub-avatar {{ entry.status }}">{{ entry.email[0]|upper }}</div>
+          <div class="sub-info">
+            <div class="sub-email" title="{{ entry.email }}">{{ entry.email }}</div>
+            <div class="sub-status">
+              <div class="status-dot {{ entry.status }}"></div>
+              <span class="status-label {{ entry.status }}">{{ entry.status|upper }}</span>
+            </div>
+            {% if entry.get('added_at') %}
+              <div class="sub-date">Added {{ entry.added_at[:10] }}</div>
+            {% endif %}
+          </div>
+          <button class="remove-btn" onclick="openRemoveModal('{{ entry.email }}')">🔕 UNSUBSCRIBE</button>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="sub-empty">
+          <div class="sub-empty-icon">🔕</div>
+          <div class="sub-empty-text">NO SUBSCRIBERS YET</div>
+          <div class="sub-empty-sub">Add an email below to receive game alerts</div>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if notification_emails %}
+    <div class="pending-notice">
+      <strong>PENDING</strong> — Check your inbox and click the confirmation link to activate. &nbsp;|&nbsp;
+      <span class="ok">CONFIRMED</span> — Alerts are active and will be sent automatically.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Add email -->
+  <div class="add-card">
+    <div class="add-title">➕ ADD EMAIL</div>
+    <div class="add-sub">Enter an email address to subscribe. A confirmation link will be sent — click it to activate alerts.</div>
+    <form method="POST" action="{{ url_for('alerts') }}">
+      <input type="hidden" name="action" value="save_email">
+      <div class="form-row">
+        <input type="email" name="email" class="email-input" placeholder="your@email.com" required autocomplete="off">
+        <button type="submit" class="submit-btn">SUBSCRIBE</button>
+      </div>
+      <div class="form-hint">📬 Check spam if the confirmation email doesn't arrive. <span>Alerts send automatically once confirmed.</span></div>
+    </form>
+  </div>
+
+</div>
+
+<!-- Remove modal -->
+<div class="modal-overlay" id="remove-modal">
+  <div class="modal-box">
+    <div class="modal-icon">🔕</div>
+    <div class="modal-title">REMOVE ALERT</div>
+    <div class="modal-sub">This will unsubscribe the following email from game alerts:</div>
+    <div class="modal-email" id="modal-email-display">—</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">CANCEL</button>
+      <form method="POST" action="{{ url_for('alerts') }}" style="margin:0">
+        <input type="hidden" name="action" value="remove_email">
+        <input type="hidden" name="email" id="modal-email-input">
+        <button type="submit" class="modal-confirm">REMOVE</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openRemoveModal(email) {
+  document.getElementById('modal-email-display').textContent = email;
+  document.getElementById('modal-email-input').value = email;
+  document.getElementById('remove-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('remove-modal').classList.remove('open');
+}
+document.getElementById('remove-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindBoost — Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--purple:#b537f2;--cyan:#00f5ff;--pink:#ff2d78;--green:#00e88a;--bg:#050510;--card:rgba(15,10,40,0.85);--border:rgba(181,55,242,0.3);--text:#e8e0ff;--muted:#7a6f9a;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(181,55,242,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(181,55,242,0.05) 1px,transparent 1px);background-size:40px 40px;animation:grid 25s linear infinite;}
+  @keyframes grid{to{background-position:0 40px;}}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid var(--border);background:rgba(5,5,16,0.95);backdrop-filter:blur(16px);position:sticky;top:0;z-index:100;}
+  .nav-logo{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
+  .nav-links{display:flex;gap:6px;flex-wrap:wrap;}
+  .nav-btn{padding:8px 16px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;border-radius:6px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;text-decoration:none;display:inline-block;}
+  .nav-btn:hover,.nav-btn.active{background:rgba(181,55,242,0.2);border-color:var(--purple);color:var(--cyan);}
+  .nav-btn.logout:hover{background:rgba(255,45,120,0.2);border-color:var(--pink);color:var(--pink);}
+  .container{max-width:900px;margin:0 auto;padding:36px 24px;position:relative;z-index:1;}
+  h1{font-family:'Orbitron',monospace;font-size:24px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;margin-bottom:28px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:30px;position:relative;overflow:hidden;}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),var(--cyan),transparent);}
+  .card h2{font-family:'Orbitron',monospace;font-size:14px;color:var(--cyan);letter-spacing:2px;margin-bottom:20px;}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(181,55,242,0.1);}
+  .stat-row:last-child{border-bottom:none;}
+  .stat-label{color:var(--muted);font-size:14px;}
+  .stat-value{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--cyan);}
+  .progress-wrap{margin-top:8px;}
+  .progress-bar{background:rgba(255,255,255,0.08);height:12px;border-radius:6px;overflow:hidden;margin:10px 0;}
+  .progress-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width 0.8s ease;}
+  .progress-label{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">MINDBOOST</div>
+  <div class="nav-links">
+    <a href="/dashboard" class="nav-btn">Dashboard</a>
+    <a href="/play"      class="nav-btn">Play Games</a>
+    <a href="/scores"    class="nav-btn">Scores</a>
+    <a href="/profile"   class="nav-btn active">Profile</a>
+    <a href="/alerts"    class="nav-btn">🔔 Alerts</a>
+    <a href="/logout"    class="nav-btn logout">Logout</a>
+  </div>
+</nav>
+<div class="container">
+  <h1>👤 PROFILE: {{ username.upper() }}</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>STATISTICS</h2>
+      <div class="stat-row"><span class="stat-label">🧠 Brain Level</span><span class="stat-value">{{ user.brain_level }}</span></div>
+      <div class="stat-row"><span class="stat-label">🏆 Total Score</span><span class="stat-value">{{ user.total_score }}</span></div>
+      <div class="stat-row"><span class="stat-label">🔥 Daily Streak</span><span class="stat-value">{{ user.daily_streak }} days</span></div>
+      <div class="stat-row"><span class="stat-label">🎮 Games Played</span><span class="stat-value">{{ user.game_history|length }}</span></div>
+      <div class="stat-row"><span class="stat-label">📧 Alerts Email</span><span class="stat-value" style="font-size:13px;color:var(--muted)">{{ user.email or 'Not set' }}</span></div>
+      <div class="stat-row"><span class="stat-label">🔔 Alerts</span><span class="stat-value" style="color:{{ '#00e88a' if user.game_alerts else 'var(--muted)' }}">{{ 'ON' if user.game_alerts else 'OFF' }}</span></div>
+    </div>
+    <div class="card">
+      <h2>BRAIN LEVEL PROGRESS</h2>
+      <div style="text-align:center;margin:20px 0;">
+        <div style="font-family:'Orbitron',monospace;font-size:64px;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ user.brain_level }}</div>
+        <div style="color:var(--muted);font-size:12px;letter-spacing:2px;margin-top:4px;">CURRENT LEVEL</div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:{{ (user.brain_level / 10 * 100)|int }}%"></div>
+        </div>
+        <div class="progress-label"><span>Level 1</span><span>Level {{ user.brain_level }}/10</span><span>Level 10</span></div>
+      </div>
+      <div style="margin-top:24px;text-align:center;">
+        <a href="/alerts" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,var(--purple),#6a0dad);border-radius:8px;color:white;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:2px;text-decoration:none;">⚙ ALERT SETTINGS</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

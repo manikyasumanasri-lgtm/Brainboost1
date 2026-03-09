@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindBoost — Memory Flip Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--purple:#b537f2;--cyan:#00f5ff;--pink:#ff2d78;--green:#00e88a;--bg:#050510;--card:rgba(15,10,40,0.85);--border:rgba(181,55,242,0.3);--text:#e8e0ff;--muted:#7a6f9a;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(181,55,242,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(181,55,242,0.05) 1px,transparent 1px);background-size:40px 40px;}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:rgba(5,5,16,0.95);}
+  .nav-logo{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
+  .nav-btn{padding:7px 14px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block;}
+  .nav-btn:hover{background:rgba(181,55,242,0.2);border-color:var(--purple);color:var(--cyan);}
+  .container{max-width:600px;margin:0 auto;padding:28px 20px;position:relative;z-index:1;}
+  .hud{display:flex;justify-content:space-between;background:rgba(15,10,40,0.85);border:1px solid var(--border);border-radius:12px;padding:16px 24px;margin-bottom:20px;}
+  .hud-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .hud-value{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:var(--cyan);}
+  .board-wrap{background:rgba(15,10,40,0.85);border:1px solid var(--border);border-radius:16px;padding:20px;}
+  #game-board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .mcard{aspect-ratio:1;background:linear-gradient(135deg,rgba(181,55,242,0.3),rgba(108,92,231,0.2));border:1px solid var(--purple);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;transition:all 0.3s;user-select:none;}
+  .mcard:hover{transform:scale(1.05);}
+  .mcard.flipped{background:rgba(255,255,255,0.1);border-color:var(--cyan);}
+  .mcard.matched{background:linear-gradient(135deg,rgba(0,232,138,0.2),rgba(0,201,122,0.15));border-color:var(--green);cursor:default;transform:none;}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;}
+  .overlay.show{display:flex;}
+  .result-card{background:rgba(15,10,40,0.98);border:1px solid var(--purple);border-radius:20px;padding:48px 40px;text-align:center;max-width:380px;width:90%;}
+  .result-card h2{font-family:'Orbitron',monospace;font-size:22px;color:var(--green);margin-bottom:16px;}
+  .result-score{font-family:'Orbitron',monospace;font-size:56px;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:16px 0;}
+  .result-btn{display:inline-block;padding:14px 32px;background:linear-gradient(135deg,var(--purple),#6a0dad);border-radius:8px;color:white;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;text-decoration:none;margin-top:8px;}
+
+  /* ── HOW TO PLAY MODAL ── */
+  .htp-btn{position:fixed;bottom:24px;right:24px;z-index:150;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;color:white;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(181,55,242,0.5);transition:all 0.25s;display:flex;align-items:center;justify-content:center;}
+  .htp-btn:hover{transform:scale(1.12) translateY(-2px);box-shadow:0 8px 28px rgba(181,55,242,0.7);}
+  .htp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:400;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:20px;}
+  .htp-overlay.open{display:flex;}
+  .htp-box{background:rgba(10,6,30,0.98);border:1px solid var(--border);border-radius:20px;max-width:480px;width:100%;overflow:hidden;animation:htpIn 0.25s ease;position:relative;}
+  @keyframes htpIn{from{opacity:0;transform:scale(0.94) translateY(-12px)}to{opacity:1;transform:none}}
+  .htp-header{padding:24px 28px 18px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(181,55,242,0.12),rgba(0,245,255,0.06));position:relative;}
+  .htp-title{font-family:'Orbitron',monospace;font-size:17px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;margin-bottom:4px;}
+  .htp-sub{font-size:12px;color:var(--muted);letter-spacing:1px;}
+  .htp-close{position:absolute;top:16px;right:18px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .htp-close:hover{border-color:var(--pink);color:var(--pink);}
+  .htp-body{padding:24px 28px;}
+  .htp-steps{list-style:none;display:flex;flex-direction:column;gap:14px;}
+  .htp-step{display:flex;gap:14px;align-items:flex-start;}
+  .htp-num{flex-shrink:0;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(181,55,242,0.3),rgba(0,245,255,0.15));border:1px solid rgba(181,55,242,0.4);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--cyan);}
+  .htp-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:4px;}
+  .htp-text strong{color:var(--cyan);}
+  .htp-tip{margin-top:20px;padding:12px 16px;background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.18);border-radius:10px;font-size:12px;color:var(--muted);line-height:1.6;}
+  .htp-tip span{color:var(--cyan);font-weight:700;}
+  .htp-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;}
+  .htp-go{padding:11px 28px;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;border-radius:8px;color:white;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.2s;}
+  .htp-go:hover{box-shadow:0 4px 16px rgba(181,55,242,0.5);transform:translateY(-1px);}
+
+
+  /* ── HOW TO PLAY MODAL ── */
+  .htp-btn{position:fixed;bottom:24px;right:24px;z-index:150;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;color:white;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(181,55,242,0.5);transition:all 0.25s;display:flex;align-items:center;justify-content:center;}
+  .htp-btn:hover{transform:scale(1.12) translateY(-2px);box-shadow:0 8px 28px rgba(181,55,242,0.7);}
+  .htp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:400;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:20px;}
+  .htp-overlay.open{display:flex;}
+  .htp-box{background:rgba(10,6,30,0.98);border:1px solid var(--border);border-radius:20px;max-width:480px;width:100%;overflow:hidden;animation:htpIn 0.25s ease;position:relative;}
+  @keyframes htpIn{from{opacity:0;transform:scale(0.94) translateY(-12px)}to{opacity:1;transform:none}}
+  .htp-header{padding:24px 28px 18px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(181,55,242,0.12),rgba(0,245,255,0.06));position:relative;}
+  .htp-title{font-family:'Orbitron',monospace;font-size:17px;font-weight:900;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;margin-bottom:4px;}
+  .htp-sub{font-size:12px;color:var(--muted);letter-spacing:1px;}
+  .htp-close{position:absolute;top:16px;right:18px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .htp-close:hover{border-color:var(--pink);color:var(--pink);}
+  .htp-body{padding:24px 28px;}
+  .htp-steps{list-style:none;display:flex;flex-direction:column;gap:14px;}
+  .htp-step{display:flex;gap:14px;align-items:flex-start;}
+  .htp-num{flex-shrink:0;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(181,55,242,0.3),rgba(0,245,255,0.15));border:1px solid rgba(181,55,242,0.4);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--cyan);}
+  .htp-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:4px;}
+  .htp-text strong{color:var(--cyan);}
+  .htp-tip{margin-top:20px;padding:12px 16px;background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.18);border-radius:10px;font-size:12px;color:var(--muted);line-height:1.6;}
+  .htp-tip span{color:var(--cyan);font-weight:700;}
+  .htp-footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;}
+  .htp-go{padding:11px 28px;background:linear-gradient(135deg,var(--purple),#6a0dad);border:none;border-radius:8px;color:white;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.2s;}
+  .htp-go:hover{box-shadow:0 4px 16px rgba(181,55,242,0.5);transform:translateY(-1px);}
+
+
+  /* ── INSTRUCTIONS STRIP ── */
+  .instr-strip{background:rgba(15,10,40,0.85);border:1px solid rgba(0,245,255,0.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;}
+  .instr-strip-title{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:8px;display:block;}
+  .instr-steps{display:flex;flex-wrap:wrap;gap:8px;width:100%;}
+  .instr-step{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(181,55,242,0.18);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);line-height:1.4;}
+  .instr-step .i-num{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;color:var(--cyan);background:rgba(0,245,255,0.1);border-radius:4px;padding:2px 5px;flex-shrink:0;}
+  .instr-step .i-icon{font-size:14px;flex-shrink:0;}
+  .instr-step strong{color:var(--cyan);}
+
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">MINDBOOST</div>
+  <div style="display:flex;gap:8px;"><a href="/dashboard" class="nav-btn">Dashboard</a><a href="/play" class="nav-btn">← Games</a></div>
+</nav>
+<div class="container">
+  <div class="hud">
+    <div><div class="hud-label">Moves</div>
+<!-- INSTR-INJECTED -->
+<div class="instr-strip">
+  <span class="instr-strip-title">📖 How to Play</span>
+  <div class="instr-steps">
+    <div class="instr-step"><span class="i-num">1</span><span class="i-icon">🃏</span>16 cards face-down — hiding <strong>8 emoji pairs</strong></div>
+    <div class="instr-step"><span class="i-num">2</span><span class="i-icon">👆</span>Click a card to flip it, then click another to <strong>find its match</strong></div>
+    <div class="instr-step"><span class="i-num">3</span><span class="i-icon">✅</span>Pairs <strong>stay face-up</strong> — non-matches flip back, remember them!</div>
+    <div class="instr-step"><span class="i-num">4</span><span class="i-icon">🏆</span><strong>Fewer moves = higher score</strong> — match all 8 pairs to win</div>
+  </div>
+</div><div class="hud-value" id="moves">0</div></div>
+    <div><div class="hud-label">Pairs</div><div class="hud-value" id="pairs">0/8</div></div>
+    <div><div class="hud-label">Time</div><div class="hud-value" id="timer">0</div></div>
+  </div>
+  <div class="board-wrap"><div id="game-board"></div></div>
+</div>
+<div class="overlay" id="overlay">
+  <div class="result-card">
+    <h2>🎉 COMPLETE!</h2>
+    <div class="result-score" id="final-score">0</div>
+    <div style="color:var(--muted);margin-bottom:8px;">Final Score</div>
+    <div style="color:var(--muted);font-size:14px;margin-bottom:20px;">Moves: <span id="final-moves" style="color:var(--cyan);">0</span></div>
+    <a href="/play" class="result-btn">BACK TO GAMES</a>
+  </div>
+</div>
+<script>
+const emojis=['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🎮'];
+let cards=[],flipped=[],matched=0,moves=0,elapsed=0,active=true,canFlip=true;
+function init(){
+  cards=[...emojis,...emojis].sort(()=>Math.random()-0.5);
+  const el=document.getElementById('game-board');el.innerHTML='';
+  cards.forEach((e,i)=>{
+    const d=document.createElement('div');d.className='mcard';d.dataset.i=i;d.dataset.e=e;
+    d.textContent='❓';d.onclick=()=>flip(i);el.appendChild(d);
+  });
+}
+function flip(i){
+  if(!active||!canFlip)return;
+  const el=document.querySelector(`[data-i="${i}"]`);
+  if(el.classList.contains('flipped')||el.classList.contains('matched'))return;
+  el.classList.add('flipped');el.textContent=el.dataset.e;
+  flipped.push({i,e:el.dataset.e});
+  if(flipped.length===2){moves++;document.getElementById('moves').textContent=moves;canFlip=false;setTimeout(check,700);}
+}
+function check(){
+  const[a,b]=flipped;
+  if(a.e===b.e){
+    document.querySelector(`[data-i="${a.i}"]`).classList.add('matched');
+    document.querySelector(`[data-i="${b.i}"]`).classList.add('matched');
+    matched++;document.getElementById('pairs').textContent=`${matched}/8`;
+    if(matched===8)end();
+  }else{
+    [a,b].forEach(x=>{const el=document.querySelector(`[data-i="${x.i}"]`);el.classList.remove('flipped');el.textContent='❓';});
+  }
+  flipped=[];canFlip=true;
+}
+const tmr=setInterval(()=>{if(!active){clearInterval(tmr);return;}elapsed++;document.getElementById('timer').textContent=elapsed;},1000);
+function end(){
+  active=false;
+  const sc=Math.max(0,1000-moves*10-elapsed);
+  const acc=Math.round(8/moves*100);
+  document.getElementById('final-score').textContent=sc;
+  document.getElementById('final-moves').textContent=moves;
+  document.getElementById('overlay').classList.add('show');
+  fetch('/save_score',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({game_name:'Memory Flip Cards',score:sc,time_taken:elapsed,accuracy:acc})});
+}
+init();
+</script>
+
+<!-- HTP-INJECTED -->
+<!-- HOW TO PLAY BUTTON -->
+<button class="htp-btn" onclick="document.getElementById('htp-modal').classList.add('open')" title="How to Play">❓</button>
+
+<!-- HOW TO PLAY MODAL -->
+<div class="htp-overlay" id="htp-modal">
+  <div class="htp-box">
+    <div class="htp-header">
+      <div class="htp-title">MEMORY FLIP CARDS</div>
+      <div class="htp-sub">Find all matching pairs with the fewest moves</div>
+      <button class="htp-close" onclick="document.getElementById('htp-modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="htp-body">
+      <ol class="htp-steps">
+        <li class="htp-step"><div class="htp-num">1</div><div class="htp-text">🃏 All 16 cards start face-down, hiding <strong>8 emoji pairs</strong>.</div></li>
+        <li class="htp-step"><div class="htp-num">2</div><div class="htp-text">👆 Click any card to flip it and reveal the emoji.</div></li>
+        <li class="htp-step"><div class="htp-num">3</div><div class="htp-text">✅ Click a second card — if they <strong>match</strong>, both stay face-up!</div></li>
+        <li class="htp-step"><div class="htp-num">4</div><div class="htp-text">🧠 If they <strong>don't match</strong>, both flip back — remember where they were!</div></li>
+        <li class="htp-step"><div class="htp-num">5</div><div class="htp-text">🏆 Complete all 8 pairs to finish. <strong>Fewer moves = higher score!</strong></div></li>
+      </ol>
+      <div class="htp-tip">💡 <span>Pro tip:</span> Score = 1000 − (moves × 10) − seconds. Speed AND efficiency both matter!</div>
+    </div>
+    <div class="htp-footer">
+      <button class="htp-go" onclick="document.getElementById('htp-modal').classList.remove('open')">GOT IT — LET'S PLAY!</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var ov=document.getElementById('htp-modal');
+  ov.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')ov.classList.remove('open');});
+})();
+</script>
+
+</body>
+</html>
